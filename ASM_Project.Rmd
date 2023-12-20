@@ -1,0 +1,21 @@
+---
+title: "ASM_Project"
+author: "Maria Paraskeva"
+date: "2023-12-20"
+output: html_document
+---
+# Load Libraries
+```{r}
+
+```
+
+#Read Data
+The chosen time series shows the apparent cement consumption in Spain (Construction Indicator) in thousands of tones.
+```{r}
+
+serie=window(ts(read.table("cemento.dat"),start=1990,freq=12))
+
+plot(serie,main="Apparent cement consumption in Spain (Thousand of tones)")
+abline(v=1990:2020,col=4,lty=3)
+```
+
