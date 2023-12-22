@@ -104,7 +104,7 @@ AR(2), AR(4), SAR(4)
 ## Models
 
 ```{r}
-(mod1=arima(d1d12lnserie,order=c(0,0,2),seasonal=list(order=c(4,0,0),period=12)))
+(mod1=arima(d1d12lnserie,order=c(2,0,0),seasonal=list(order=c(4,0,0),period=12)))
 ```
 
 ```{r}
@@ -112,16 +112,15 @@ abs(mod1$coef/sqrt(diag(mod1$var.coef)))
 ```
 
 ```{r}
-(mod1=arima(lnserie,order=c(0,1,2),seasonal=list(order=c(4,1,0),period=12)))
+(mod1=arima(lnserie,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12)))
 ```
 
 ```{r}
 abs(mod1$coef/sqrt(diag(mod1$var.coef)))
 ```
 
-
 ```{r}
-(mod2=arima(d1d12lnserie,order=c(0,0,4),seasonal=list(order=c(4,0,0),period=12)))
+(mod2=arima(d1d12lnserie,order=c(4,0,0),seasonal=list(order=c(4,0,0),period=12)))
 ```
 
 ```{r}
@@ -129,7 +128,7 @@ abs(mod2$coef/sqrt(diag(mod2$var.coef)))
 ```
 
 ```{r}
-(mod2=arima(lnserie,order=c(0,1,4),seasonal=list(order=c(4,1,0),period=12)))
+(mod2=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
 ```
 
 ```{r}
@@ -191,6 +190,9 @@ validation=function(model,dades){
   cat("\nModul of MA Characteristic polynomial Roots: ",
       Mod(polyroot(c(1,model$model$theta))),"\n")
   
+  suppressMessages(require(forecast,quietly=TRUE,warn.conflicts=FALSE))
+  plot(model)
+  
   #Model expressed as an MA infinity (psi-weights)
   psis=ARMAtoMA(ar=model$model$phi,ma=model$model$theta,lag.max=36)
   names(psis)=paste("psi",1:36)
@@ -204,6 +206,13 @@ validation=function(model,dades){
   cat("\nPi-weights (AR(inf))\n")
   cat("\n--------------------\n")
   print(pis[1:20])
+  
+  cat("\nDescriptive Statistics for the Residuals\n")
+  cat("\n----------------------------------------\n") 
+  
+  suppressMessages(require(fBasics,quietly=TRUE,warn.conflicts=FALSE))
+  ##Anderson-Darling test
+  print(basicStats(resid))
   
   ## Add here complementary tests (use with caution!)
   ##---------------------------------------------------------
@@ -305,10 +314,9 @@ par(mfrow=c(1,1))
 ```
 
 ```{r}
-(mod.lin=arima(lnserie.lin,order=c(0,1,4),seasonal=list(order=c(0,1,4),period=12)))
+(mod.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
 ```
 
 ```{r}
 validation(mod.lin,d1d12lnserie.lin)
 ```
-
