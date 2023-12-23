@@ -14,64 +14,80 @@ The chosen time series shows the apparent cement consumption in Spain (Construct
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Load the data and print them by month.
 ```{r}
 serie=window(ts(read.table("cemento.dat"),start=1990,freq=12))
 print(round(serie,0))
 ```
 
+Plot the time series. 
 ```{r}
 plot(serie,main="Apparent cement consumption in Spain (Thousand of tones)")
 abline(v=1990:2020,col=4,lty=3)
 ```
 
-## Transformations
-
+# Transformations
+Calculate the mean and variance per month in a matrix of 12 rows (months). Then plot the values of the annual mean against annual variance. 
 ```{r}
 m=apply(matrix(serie,nr=12),2,mean)
 v=apply(matrix(serie,nr=12),2,var)
-plot(m,v,xlab="Medias anuales",ylab="Annual Variances",main="serie")
+plot(m,v,xlab="Annual Mean",ylab="Annual Variance",main="Annual Mean against Annual Variance values")
 abline(lm(v~m),col=2,lty=3,lwd=2)
 ```
 
+Plot the cement consumption over the years so as to gain insights into potential trends or seasonal patterns in construction activity. 
 ```{r}
-boxplot(serie~floor(time(serie)))
+boxplot(serie ~ floor(time(serie)), main = "Distribution of Time Series Data Across Time", xlab = "Year", ylab = "Cement Consumption")
 ```
 
+Make a log transformation and plot the results. 
 ```{r}
 lnserie=log(serie)
-plot(lnserie)
+plot(lnserie, xlab = "Time", ylab = "Log Data", main = "Log transformation of Data over Time")
 ```
 
+Calculate the log mean and log variance per month in a matrix of 12 rows (months).
+Plot log variance against log mean.
 ```{r}
 m=apply(matrix(lnserie,nr=12),2,mean)
 v=apply(matrix(lnserie,nr=12),2,var)
-plot(m,v,xlab="Medias anuales",ylab="Varianzas anuales",main="serie")
+plot(m,v,xlab="Annual Log Mean",ylab="Annual Log Variance",main="Annual Log Mean against Annual Log Variance values")
 abline(lm(v~m),col=2,lty=3,lwd=2)
 ```
 
-
+Plot the log cement consumption over discrete time intervals. 
 ```{r}
-boxplot(lnserie~floor(time(lnserie)))
+boxplot(lnserie~floor(time(lnserie)), main = "Distribution of Log Data Across Time", xlab = "Year", ylab = "Log of Cement Consumption")
 ```
 
+Plot the decomposition of additive time series. From top to bottom it shows:
+Original time series
+Trend Component
+Seasonal Component
+Residual Component
 ```{r}
 plot(decompose(lnserie))
 ```
 
+Seasonal plot of log data showing one subplot per month. The horizontal line in each subplot represents the mean value of the log-transformed time series. 
 ```{r}
-monthplot(lnserie)
+monthplot(lnserie, main = "Seasonal plot of log data")
 ```
 
+Plot the log-transformed data in a matrix format where each column is a different month. 
 ```{r}
-ts.plot(matrix(lnserie,nrow=12),col=1:8)
+ts.plot(matrix(lnserie,nrow=12),col=1:8, main = "Monthly Patterns in Log-Transformed Time Series Data")
 ```
 
+Calculate the difference on the log data with a lag of 12. Then plot the results. 
 ```{r}
 d12lnserie=diff(lnserie,12)
 plot(d12lnserie)
 abline(h=0)
+abline(h=mean(d12lnserie),col=2)
 ```
 
+Add a differencing to the previous series with a lag of 1 and plot the results. 
 ```{r}
 d1d12lnserie=diff(d12lnserie,1)
 plot(d1d12lnserie)
@@ -79,6 +95,7 @@ abline(h=0)
 abline(h=mean(d1d12lnserie),col=2,lwd=2)
 ```
 
+Add another differencing with a lag of 1 and plot the results. 
 ```{r}
 d1d1d12lnserie=diff(d1d12lnserie,1)
 plot(d1d1d12lnserie)
@@ -86,6 +103,7 @@ abline(h=0)
 abline(h=mean(d1d12lnserie),col=2,lwd=2)
 ```
 
+Show the variance of the transformed time series. The smaller is the d1d12lnserie. 
 ```{r}
 var(lnserie)
 var(d1d12lnserie)
@@ -93,6 +111,7 @@ var(d1d1d12lnserie)
 
 ```
 
+Autocorrelation and partial autocorrelation function plots shown side by side for the differenced d1d12lnserie. 
 ```{r}
 par(mfrow=c(1,2))
 acf(d1d12lnserie,ylim=c(-1,1),col=c(2,rep(1,11)),lwd=2,lag.max=120)
@@ -101,7 +120,7 @@ pacf(d1d12lnserie,ylim=c(-1,1),col=c(rep(1,11),2),lwd=2,lag.max=120)
 
 AR(2), AR(4), SAR(4)
 
-## Models
+# Models
 
 ```{r}
 (mod1=arima(d1d12lnserie,order=c(2,0,0),seasonal=list(order=c(4,0,0),period=12)))
@@ -141,7 +160,7 @@ mod2$aic
 ```
 
 
-## Validation
+# Validation
 
 ```{r}
 #################Validation#################################
@@ -273,7 +292,7 @@ validation=function(model,dades){
 validation(mod2,d1d12lnserie )
 ```
 
-## outliers treatment
+# outlier treatment
 
 ```{r}
 ########## Atípics (Outliers) ###############################################
