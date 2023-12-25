@@ -166,7 +166,7 @@ mod1$aic
 mod2$aic
 ```
 
-mod2 have lower AIC so we take the second model
+mod2 have lower AIC, but T ratios of ar3 and ar4 are lower than 2 so we take the first model
 
 # Validation
 
@@ -297,8 +297,67 @@ validation=function(model,dades){
 ```
 
 ```{r}
-validation(mod2,d1d12lnserie)
+validation(mod1,d1d12lnserie)
 ```
+
+# Split
+
+```{r}
+ultim=c(2018,12)
+pdq=c(2,1,0)
+PDQ=c(4,1,0)
+
+serie1=window(serie,end=ultim+c(1,0))
+lnserie1=log(serie1)
+serie2=window(serie,end=ultim)
+lnserie2=log(serie2)
+
+(mod1=arima(lnserie1,order=pdq,seasonal=list(order=PDQ,period=12)))
+
+(mod2=arima(lnserie2,order=pdq,seasonal=list(order=PDQ,period=12)))
+```
+
+both models are similar, more or less the same coef
+
+```{r}
+pred=predict(mod2,n.ahead=12)
+pr<-ts(c(tail(lnserie2,1),pred$pred),start=ultim,freq=12)
+
+se<-ts(c(0,pred$se),start=ultim,freq=12)
+
+#Intervals
+tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr<-ts(exp(pr),start=ultim,freq=12)
+
+reduced <- window(serie,start=ultim-c(4,0) ,end=ultim+c(1,0))
+
+top <- max(reduced,tu)
+bot <- min(reduced,tl)
+mid <- top - bot
+
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,+2),ylim=c(bot-0.1*mid,top+0.1*mid),type="o",main="Model ARIMA(2,1,0)(4,1,0)12")
+abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
+
+(previs=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
+```
+
+```{r}
+obs=window(serie,start=ultim)
+mod.RMSE1=sqrt(sum((obs-pr)^2)/12)
+mod.MAE1=sum(abs(obs-pr))/12
+mod.RMSPE1=sqrt(sum(((obs-pr)/obs)^2)/12)
+mod.MAPE1=sum(abs(obs-pr)/obs)/12
+
+data.frame("RMSE"=mod.RMSE1,"MAE"=mod.MAE1,"RMSPE"=mod.RMSPE1,"MAPE"=mod.MAPE1)
+```
+
+```{r}
+mCI1=mean(tu-tl)
+
+cat("\nMean Length CI: ",mCI1)
+```
+
 
 # Calendar Effect
 
@@ -317,32 +376,32 @@ data=c(start(lnserie)[1],start(lnserie)[2], length(lnserie))
 ```
 
 ```{r}
-(mod2TD=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=wTradDays))
-abs(mod2TD$coef/sqrt(diag(mod2TD$var.coef)))
+(modTD=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=wTradDays))
+abs(modTD$coef/sqrt(diag(modTD$var.coef)))
 ```
 
 ```{r}
-(mod2Ea=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=wEast))
-abs(mod2Ea$coef/sqrt(diag(mod2Ea$var.coef)))
+(modEa=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=wEast))
+abs(modEa$coef/sqrt(diag(modEa$var.coef)))
 ```
 
 ```{r}
-(mod2EC=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
-abs(mod2EC$coef/sqrt(diag(mod2EC$var.coef)))
+(modEC=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays,wEast)))
+abs(modEC$coef/sqrt(diag(modEC$var.coef)))
 ```
 
 ```{r}
-mod2$aic
-mod2TD$aic
-mod2Ea$aic
-mod2EC$aic
+mod1$aic
+modTD$aic
+modEa$aic
+modEC$aic
 ```
 
-best model mod2EC
+best model modEC
 
 ```{r}
-EfecTD=coef(mod2EC)["wTradDays"]*wTradDays
-EfecSS=coef(mod2EC)["wEast"]*wEast
+EfecTD=coef(modEC)["wTradDays"]*wTradDays
+EfecSS=coef(modEC)["wEast"]*wEast
 lnserieEC=lnserie-EfecTD-EfecSS
 
 d1d12lnserieEC=diff(diff(lnserieEC,12))
@@ -369,6 +428,93 @@ abs(mod1EC$coef/sqrt(diag(mod1EC$var.coef)))
 abs(mod2EC$coef/sqrt(diag(mod2EC$var.coef)))
 ```
 
+mod2EC best model, lower AIC
+
+```{r}
+pdq <- c(0,1,2)
+PDQ <- c(1,1,0)
+```
+
+
+```{r}
+EfecTD=coef(mod2EC)["wTradDays"]*wTradDays
+EfecSS=coef(mod2EC)["wEast"]*wEast
+plot(EfecTD+EfecSS)
+```
+
+```{r}
+reduced <- window(serie,start=ultim-c(4,0) ,end=ultim+c(1,0))
+
+serieEC=exp(lnserieEC)
+plot(reduced,type="o")
+lines(serieEC,col=2,type="o")
+abline(v=2014:2017,lty=3,col=4)
+
+window(cbind(wTradDays,wEast,serie,serieEC),start=2014)
+```
+
+```{r}
+validation(mod2EC,d1d12lnserieEC)
+```
+
+## ploting calendar
+
+```{r}
+ultim=c(2018,12)
+
+serie1=window(serie,end=ultim+c(1,0))
+lnserie1=log(serie1)
+serie2=window(serie,end=ultim)
+lnserie2=log(serie2)
+wTradDays2=window(wTradDays,end=ultim)
+wEast2=window(wEast,end=ultim)
+
+(modEC=arima(lnserie1,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays,wEast)))
+
+(modEC2=arima(lnserie2,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays2,wEast2)))
+```
+
+```{r}
+pred=predict(modEC2,n.ahead=12,newxreg=window(cbind(wTradDays,wEast),start=c(ultim[1]+1,1)))
+predic=pred$pr
+
+pr<-ts(c(tail(lnserie2,1),pred$pred),start=ultim,freq=12)
+
+se<-ts(c(0,pred$se),start=ultim,freq=12)
+
+#Intervals
+tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr<-ts(exp(pr),start=ultim,freq=12)
+
+reduced <- window(serie,start=ultim-c(4,0) ,end=ultim+c(1,0))
+
+top <- max(reduced,tu)
+bot <- min(reduced,tl)
+mid <- top - bot
+
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,+2),ylim=c(bot-0.1*mid,top+0.1*mid),type="o",main="Model ARIMA(0,1,2)(1,1,0)12+TD+Easter")
+abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
+
+(previs=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
+```
+
+```{r}
+obs=window(serie,start=ultim)
+mod.RMSE1=sqrt(sum((obs-pr)^2)/12)
+mod.MAE1=sum(abs(obs-pr))/12
+mod.RMSPE1=sqrt(sum(((obs-pr)/obs)^2)/12)
+mod.MAPE1=sum(abs(obs-pr)/obs)/12
+
+data.frame("RMSE"=mod.RMSE1,"MAE"=mod.MAE1,"RMSPE"=mod.RMSPE1,"MAPE"=mod.MAPE1)
+```
+
+```{r}
+mCI1=mean(tu-tl)
+
+cat("\nMean Length CI: ",mCI1)
+```
+
 # outlier treatment
 
 ```{r}
@@ -378,41 +524,181 @@ source("atipics2.r")
 
 ```{r}
 # crit 2.9 cut be a good threahhold
-mod.atip=outdetec(mod2EC,dif=c(1,12),crit=3.0,LS=T)
-mod.atip$sigma
+modEC.atip=outdetec(mod1EC,dif=c(1,12),crit=3.5,LS=T)
+modEC.atip$sigma
 ```
 
 ```{r}
-atipics=mod.atip$atip[order(mod.atip$atip[,1]),]
-meses=c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+atipics=modEC.atip$atip[order(modEC.atip$atip[,1]),]
+month=c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
 
-data.frame(atipics,Fecha=paste(meses[(atipics[,1]-1)%%12+1],start(lnserie)[1]+((atipics[,1]-1)%/%12)),perc.Obs=exp(atipics[,3])*100)
+data.frame(atipics,Fecha=paste(month[(atipics[,1]-1)%%12+1],start(lnserie)[1]+((atipics[,1]-1)%/%12)),perc.Obs=exp(atipics[,3])*100)
 ```
 
 ```{r}
-lnserie.lin=lineal(lnserie,mod.atip$atip)
+lnserie.lin=lineal(lnserie,modEC.atip$atip)
 serie.lin=exp(lnserie.lin)
-
-plot(serie.lin,col=2)
-lines(serie)
-```
-
-```{r}
-plot(lnserie-lnserie.lin)
 ```
 
 ```{r}
 d1d12lnserie.lin=diff(diff(lnserie.lin,12))
 par(mfrow=c(1,2))
-acf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=72,col=c(2,rep(1,11)),lwd=2)
-pacf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=72,col=c(rep(1,11),2),lwd=2)
+acf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=120,col=c(2,rep(1,11)),lwd=2)
+pacf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=120,col=c(rep(1,11),2),lwd=2)
+par(mfrow=c(1,1))
+```
+
+AR(2), AR(4), SAR(1), SAR(4)
+```{r}
+(mod1EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod1EC.lin$coef/sqrt(diag(mod1EC.lin$var.coef)))
+```
+
+```{r}
+(mod2EC.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod2EC.lin$coef/sqrt(diag(mod2EC.lin$var.coef)))
+```
+
+```{r}
+(mod3EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod3EC.lin$coef/sqrt(diag(mod3EC.lin$var.coef)))
+```
+
+```{r}
+(mod4EC.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod4EC.lin$coef/sqrt(diag(mod4EC.lin$var.coef)))
+```
+
+model 3
+
+```{r}
+pdq <- c(2,1,0)
+PDQ <- c(4,1,0)
+```
+
+
+```{r}
+EfecTD=coef(mod3EC.lin)["wTradDays"]*wTradDays
+EfecSS=coef(mod3EC.lin)["wEast"]*wEast
+lnserieEC.lin=lnserie.lin-EfecTD-EfecSS
+plot(lnserie-lnserieEC.lin)
+
+plot(exp(lnserieEC.lin),col=2)
+lines(serie)
+```
+
+```{r}
+d12lnserieEC.lin=diff(lnserieEC.lin,12)
+d1d12lnserieEC.lin=diff(d12lnserieEC.lin,1)
+
+validation(mod3EC.lin,d1d12lnserieEC.lin)
+```
+
+# plots out
+
+```{r}
+ultim=c(2018,12)
+
+serie.lin1=window(serie.lin,end=ultim+c(1,0))
+lnserie.lin1=log(serie.lin1)
+serie.lin2=window(serie.lin,end=ultim)
+lnserie.lin2=log(serie.lin2)
+wTradDays2=window(wTradDays,end=ultim)
+wEast2=window(wEast,end=ultim)
+```
+
+```{r}
+(modEC.lin=arima(lnserie.lin1,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays,wEast)))
+```
+
+```{r}
+(modEC.lin2=arima(lnserie.lin2,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays2,wEast2)))
+```
+
+```{r}
+pred=predict(modEC.lin2,n.ahead=12,newxreg=window(cbind(wTradDays,wEast),start=c(ultim[1]+1,1)))
+predic=pred$pr
+pr<-ts(c(tail(lnserie2,1),predic),start=ultim,freq=12)
+se<-ts(c(0,pred$se),start=ultim,freq=12)
+
+#Intervals
+tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
+tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
+pr<-ts(exp(pr),start=ultim,freq=12)
+
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+TD+Easter")
+abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
+```
+
+# not checked
+
+```{r}
+(previs.lin=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
+```
+
+```{r}
+obs=window(serie,start=ultim)
+mod.RMSE3=sqrt(sum((obs-pr)^2)/12)
+mod.MAE3=sum(abs(obs-pr))/12
+mod.RMSPE3=sqrt(sum(((obs-pr)/obs)^2)/12)
+mod.MAPE3=sum(abs(obs-pr)/obs)/12
+
+data.frame("RMSE"=mod.RMSE3,"MAE"=mod.MAE3,"RMSPE"=mod.RMSPE3,"MAPE"=mod.MAPE3)
+```
+
+```{r}
+mCI3=mean(tu-tl)
+
+cat("\nMean Length CI: ",mCI3)
+```
+
+# Long term predictions with complete model
+
+```{r}
+##### Previsions a llarg termini amb el model complet ######
+data3=c(ultim[1]+2, 1, 12)
+
+wTradDays3=Wtrad(data3)
+wEast3=Weaster(data3)
+pred=predict(modEC.lin,n.ahead=12,newxreg=data.frame(wTradDays3,wEast3))
+predic=pred$pr
+pr<-ts(c(lnserie[length(lnserie)],predic),start=ultim+c(1,0),freq=12)
+se<-ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
+
+#Intervals
+tl3<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
+tu3<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
+pr3<-ts(exp(pr),start=ultim+c(1,0),freq=12)
+
+ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),type="o",main="Model ARIMA(0,1,1)(0,1,1)12")
+abline(v=(ultim[1]-2):(ultim[1]+3),lty=3,col=4)
+```
+
+```{r}
+par(mfrow=c(2,2),mar=c(3,3,1,1))
+ts.plot(serie,previs1,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(2,1,0)12")
+abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
+ts.plot(serie,previs2,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+EC")
+abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
+ts.plot(serie,previs3,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+EC+Atip")
+abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
 par(mfrow=c(1,1))
 ```
 
 ```{r}
-(mod.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
+resul=data.frame(
+  par=c(length(coef(mod1)),length(coef(mod1EC)),length(coef(mod1EC.lin))+nrow(modEC.atip$atip)),
+  Sigma2Z=c(mod1$sigma2,mod1EC$sigma2,mod1EC.lin$sigma2),
+  AIC=c(AIC(mod1),AIC(mod1EC),AIC(mod1EC.lin)+2*nrow(modEC.atip$atip)),
+  BIC=c(BIC(mod1),BIC(mod1EC),BIC(mod1EC.lin)+log(length(serie)-13)*nrow(modEC.atip$atip)),
+  RMSE=c(mod.RMSE1,mod.RMSE2,mod.RMSE3),
+  MAE=c(mod.MAE1,mod.MAE2,mod.MAE3),
+  RMSPE=c(mod.RMSPE1,mod.RMSPE2,mod.RMSPE3),
+  MAPE=c(mod.MAPE1,mod.MAPE2,mod.MAPE3),
+  meanLength=c(mCI1,mCI2,mCI3))
+row.names(resul)=c("ARIMA(0,1,1)(4,1,0)12","ARIMA(0,1,1)(0,1,1)12+CalEf","ARIMA(0,1,1)(0,1,1)12+CalEf+Outliers")
+
+
+resul
 ```
 
-```{r}
-validation(mod.lin,d1d12lnserie.lin)
-```
