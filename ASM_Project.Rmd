@@ -33,12 +33,14 @@ abline(lm(v~m),col=2,lty=3,lwd=2)
 ```
 
 Plot the cement consumption over the years so as to gain insights into potential trends or seasonal patterns in construction activity.
+Here we can clearly see that the height of the boxes (IQR) is higher for higher values of the mean, so we proceed in a change of scale. 
 
 ```{r}
 boxplot(serie ~ floor(time(serie)), main = "Distribution of Time Series Data Across Time", xlab = "Year", ylab = "Cement Consumption")
 ```
 
 Make a log transformation and plot the results. 
+we chose the log transformation as it is easy to interpret. 
 
 ```{r}
 lnserie=log(serie)
@@ -82,7 +84,7 @@ Plot the log-transformed data in a matrix format where each column is a differen
 ts.plot(matrix(lnserie,nrow=12),col=1:8, main = "Monthly Patterns in Log-Transformed Time Series Data")
 ```
 
-Calculate the difference on the log data with a lag of 12. Then plot the results.
+Calculate the seasonal difference on the log data with a lag of 12. Then plot the results.
 
 ```{r}
 d12lnserie=diff(lnserie,12)
@@ -109,7 +111,7 @@ abline(h=0)
 abline(h=mean(d1d12lnserie),col=2,lwd=2)
 ```
 
-Show the variance of the transformed time series. The smaller is the d1d12lnserie.
+Show the variance of the transformed time series. The lower variance is that of the d1d12lnserie.
 
 ```{r}
 var(lnserie)
@@ -121,54 +123,80 @@ Autocorrelation and partial autocorrelation function plots shown side by side fo
 
 ```{r}
 par(mfrow=c(1,2))
-acf(d1d12lnserie,ylim=c(-1,1),col=c(2,rep(1,11)),lwd=2,lag.max=120)
-pacf(d1d12lnserie,ylim=c(-1,1),col=c(rep(1,11),2),lwd=2,lag.max=120)
+acf(d1d12lnserie,ylim=c(-1,1),col=c(2,rep(1,11)),lwd=2,lag.max=120, main = "ACF")
+pacf(d1d12lnserie,ylim=c(-1,1),col=c(rep(1,11),2),lwd=2,lag.max=120, main = "PACF")
 ```
 
-AR(2), AR(4), SAR(4)
+The identified models are:
+ - AR(2)
+ - AR(4)
+ - SAR(2)?
+ - SAR(4)
+(i don't see it)
 
 # Models
 
-## Model1 
+## Model 1 
 
-AR(2) SAR(4)
-d=0, D=0, test if intercept is significant 
+For the model AR(2) with zero regular and seasonal differences (d=0, D=0), we test if intercept to see if it is significant.
 
 ```{r}
 (mod1=arima(d1d12lnserie,order=c(2,0,0),seasonal=list(order=c(4,0,0),period=12)))
 abs(mod1$coef/sqrt(diag(mod1$var.coef)))
+
+intercept_t_ratio <- mod1$coef["intercept"] / sqrt(mod1$var.coef["intercept", "intercept"])
+
+print(intercept_t_ratio)
+
 ```
 
-intercept t ratio is lower than 2 so, is not significant
+Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. Now for the SAR(4) model:
 
 ```{r}
-(mod1=arima(lnserie,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12)))
-abs(mod1$coef/sqrt(diag(mod1$var.coef)))
+(mod1s=arima(lnserie,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12)))
+abs(mod1s$coef/sqrt(diag(mod1s$var.coef)))
 ```
 
-Also the AIC is lower for the model with regular an seasonal difference.
-All the weights are significant.
+The AIC is lower for the model without regular and seasonal difference.
+All the weights are significant. (que quieres decir aqui)
 
-## Model2
+## Model 2
+
+We follow the same practices for the model AR(4) with zero regular and seasonal differences (d=0, D=0).
 
 ```{r}
 (mod2=arima(d1d12lnserie,order=c(4,0,0),seasonal=list(order=c(4,0,0),period=12)))
 abs(mod2$coef/sqrt(diag(mod2$var.coef)))
+
+intercept_t_ratio <- mod2$coef["intercept"] / sqrt(mod2$var.coef["intercept", "intercept"])
+
+print(intercept_t_ratio)
 ```
+
+Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. Now for the SAR(4) model:
 
 ```{r}
-(mod2=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
-abs(mod2$coef/sqrt(diag(mod2$var.coef)))
+(mod2s=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
+abs(mod2s$coef/sqrt(diag(mod2s$var.coef)))
 ```
+
+The AIC is lower for the model without regular and seasonal difference. 
+Comparing the two models below we have that the first one is better.
 
 ```{r}
-mod1$aic
-mod2$aic
+mod1$aic 
+#mod1s$aic #SAR
+mod2$aic 
+#mod2s$aic #SAR
 ```
 
-mod2 have lower AIC, but T ratios of ar3 and ar4 are lower than 2 so we take the first model
+We finally choose the first model AR(2) as it has the lowest absolute AIC value of all models above. 
+
+Also, the t-ratio of mod1 is greater than the t-ratio of mod2, which indicate more reliable estimates. 
 
 # Validation
+
+We proceed to the validation of our chosen model. 
 
 ```{r}
 #################Validation#################################
@@ -297,14 +325,16 @@ validation=function(model,dades){
 ```
 
 ```{r}
-validation(mod1,d1d12lnserie)
+validation(mod1,d1d12lnserie) 
 ```
 
 # Split
 
+---Here we take the SAR(2) and SAR(4) models. Why?---
+
 ```{r}
 ultim=c(2018,12)
-pdq=c(2,1,0)
+pdq=c(2,1,0) 
 PDQ=c(4,1,0)
 
 serie1=window(serie,end=ultim+c(1,0))
