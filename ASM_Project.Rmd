@@ -119,6 +119,10 @@ var(d1d12lnserie)
 var(d1d1d12lnserie)
 ```
 
+# Simpler models
+
+## Identification
+
 Autocorrelation and partial autocorrelation function plots shown side by side for the differenced d1d12lnserie. 
 
 ```{r}
@@ -130,15 +134,12 @@ pacf(d1d12lnserie,ylim=c(-1,1),col=c(rep(1,11),2),lwd=2,lag.max=120, main = "PAC
 The identified models are:
  - AR(2)
  - AR(4)
- - SAR(2)?
  - SAR(4)
-(i don't see it)
 
-# Models
 
-## Model 1 
+## Fiting 
 
-For the model AR(2) with zero regular and seasonal differences (d=0, D=0), we test if intercept to see if it is significant.
+For the model AR(2) SAR(4) with zero regular and seasonal differences (d=0, D=0), we test if intercept to see if it is significant.
 
 ```{r}
 (mod1=arima(d1d12lnserie,order=c(2,0,0),seasonal=list(order=c(4,0,0),period=12)))
@@ -150,19 +151,17 @@ print(intercept_t_ratio)
 
 ```
 
-Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. Now for the SAR(4) model:
+Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. So we can use the model with the regular and seasonal differences (d=1, D=1)
 
 ```{r}
-(mod1s=arima(lnserie,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12)))
-abs(mod1s$coef/sqrt(diag(mod1s$var.coef)))
+(mod1=arima(lnserie,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12)))
+abs(mod1$coef/sqrt(diag(mod1$var.coef)))
 ```
 
-The AIC is lower for the model without regular and seasonal difference.
-All the weights are significant. (que quieres decir aqui)
+The AIC is lower for the model without intercept.
+All the weights are significant (all abs(t) values > 2).
 
-## Model 2
-
-We follow the same practices for the model AR(4) with zero regular and seasonal differences (d=0, D=0).
+We follow the same practices for the model AR(4) SAR(4) with zero regular and seasonal differences (d=0, D=0) to test if the intercept is significant.
 
 ```{r}
 (mod2=arima(d1d12lnserie,order=c(4,0,0),seasonal=list(order=c(4,0,0),period=12)))
@@ -173,34 +172,30 @@ intercept_t_ratio <- mod2$coef["intercept"] / sqrt(mod2$var.coef["intercept", "i
 print(intercept_t_ratio)
 ```
 
-Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. Now for the SAR(4) model:
+Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. So we can use the model with the regular and seasonal differences (d=1, D=1)
 
 ```{r}
-(mod2s=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
-abs(mod2s$coef/sqrt(diag(mod2s$var.coef)))
+(mod2=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
+abs(mod2$coef/sqrt(diag(mod2$var.coef)))
 ```
 
 The AIC is lower for the model without regular and seasonal difference. 
-Comparing the two models below we have that the first one is better.
+But the coef AR3 and AR4 are not significant enough.
 
 ```{r}
 mod1$aic 
-#mod1s$aic #SAR
-mod2$aic 
-#mod2s$aic #SAR
+mod2$aic
 ```
 
-We finally choose the first model AR(2) as it has the lowest absolute AIC value of all models above. 
+Comparing both models mod2 have lower AIC but the last to coefficients of AR do not pass the significance test. So we finally choose the first model AR(2) SAR(4) as it has almost the same AIC of model 2 but is simpler and all coefficients are significant. 
 
-Also, the t-ratio of mod1 is greater than the t-ratio of mod2, which indicate more reliable estimates. 
-
-# Validation
+## Validation
 
 We proceed to the validation of our chosen model. 
 
 ```{r}
 #################Validation#################################
-validation=function(model,dades){
+validation=function(model){ #,dades
   s=frequency(get(model$series))
   resid=model$residuals
   par(mfrow=c(2,2),mar=c(3,3,3,3))
@@ -305,32 +300,28 @@ validation=function(model,dades){
     c(lag=(te$parameter),statistic=te$statistic[[1]],p.value=te$p.value)})))
   
 
-  #Sample ACF vs. Teoric ACF
-  par(mfrow=c(2,2),mar=c(3,3,3,3))
-  acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
+  ##Sample ACF vs. Teoric ACF
+  #par(mfrow=c(2,2),mar=c(3,3,3,3))
+  #acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
   
-  plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1), 
-       type="h",xlab="Lag",  ylab="", main="ACF Teoric")
-  abline(h=0)
+  #plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1), 
+  #     type="h",xlab="Lag",  ylab="", main="ACF Teoric")
+  #abline(h=0)
   
-  #Sample PACF vs. Teoric PACF
-  pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
+  ##Sample PACF vs. Teoric PACF
+  #pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
   
-  plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-       type="h", xlab="Lag", ylab="", main="PACF Teoric")
-  abline(h=0)
-  par(mfrow=c(1,1))
+  #plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
+  #     type="h", xlab="Lag", ylab="", main="PACF Teoric")
+  #abline(h=0)
+  #par(mfrow=c(1,1))
 }
 ################# Fi Validation #################################
 ```
 
 ```{r}
-validation(mod1,d1d12lnserie) 
+validation(mod1) #,d1d12lnserie
 ```
-
-# Split
-
----Here we take the SAR(2) and SAR(4) models. Why?---
 
 ```{r}
 ultim=c(2018,12)
@@ -388,7 +379,6 @@ mCI1=mean(tu-tl)
 cat("\nMean Length CI: ",mCI1)
 ```
 
-
 # Calendar Effect
 
 ```{r}
@@ -437,7 +427,7 @@ lnserieEC=lnserie-EfecTD-EfecSS
 d1d12lnserieEC=diff(diff(lnserieEC,12))
 ```
 
-# Modelos EC
+## Idetification
 
 ```{r}
 par(mfrow=c(1,2))
@@ -447,6 +437,8 @@ par(mfrow=c(1,1))
 ```
 
 MA(1), AR(2), SMA(1)
+
+## Fiting
 
 ```{r}
 (mod1EC=arima(lnserie,order=c(1,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
@@ -473,7 +465,9 @@ plot(EfecTD+EfecSS)
 ```
 
 ```{r}
-reduced <- window(serie,start=ultim-c(4,0) ,end=ultim+c(1,0))
+reduced <- window(serie,start=ultim-c(4,0) ,end=ultim-c(1,0))
+
+lnserieEC=lnserie-EfecTD-EfecSS
 
 serieEC=exp(lnserieEC)
 plot(reduced,type="o")
@@ -483,11 +477,11 @@ abline(v=2014:2017,lty=3,col=4)
 window(cbind(wTradDays,wEast,serie,serieEC),start=2014)
 ```
 
-```{r}
-validation(mod2EC,d1d12lnserieEC)
-```
+## Validation
 
-## ploting calendar
+```{r}
+validation(mod2EC)#,d1d12lnserieEC
+```
 
 ```{r}
 ultim=c(2018,12)
@@ -545,16 +539,18 @@ mCI1=mean(tu-tl)
 cat("\nMean Length CI: ",mCI1)
 ```
 
-# outlier treatment
+# Outlier treatment
 
 ```{r}
 ########## Atípics (Outliers) ###############################################
 source("atipics2.r")
 ```
 
+## Outlier identification
+
 ```{r}
 # crit 2.9 cut be a good threahhold
-modEC.atip=outdetec(mod1EC,dif=c(1,12),crit=3.5,LS=T)
+modEC.atip=outdetec(mod2EC,dif=c(1,12),crit=3,LS=T)
 modEC.atip$sigma
 ```
 
@@ -571,14 +567,25 @@ serie.lin=exp(lnserie.lin)
 ```
 
 ```{r}
-d1d12lnserie.lin=diff(diff(lnserie.lin,12))
+lnserieEC.lin=lineal(lnserieEC,modEC.atip$atip)
+serieEC.lin=exp(lnserieEC.lin)
+```
+
+
+## Model identification
+
+```{r}
+d1d12lnserieEC.lin=diff(diff(lnserieEC.lin,12))
 par(mfrow=c(1,2))
-acf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=120,col=c(2,rep(1,11)),lwd=2)
-pacf(d1d12lnserie.lin,ylim=c(-1,1),lag.max=120,col=c(rep(1,11),2),lwd=2)
+acf(d1d12lnserieEC.lin,ylim=c(-1,1),lag.max=120,col=c(2,rep(1,11)),lwd=2)
+pacf(d1d12lnserieEC.lin,ylim=c(-1,1),lag.max=120,col=c(rep(1,11),2),lwd=2)
 par(mfrow=c(1,1))
 ```
 
-AR(2), AR(4), SAR(1), SAR(4)
+AR(2), AR(4), MA(2), MA(4), SAR(1), SMA(1), SMA(3)
+
+## Fiting
+
 ```{r}
 (mod1EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
 abs(mod1EC.lin$coef/sqrt(diag(mod1EC.lin$var.coef)))
@@ -590,16 +597,79 @@ abs(mod2EC.lin$coef/sqrt(diag(mod2EC.lin$var.coef)))
 ```
 
 ```{r}
-(mod3EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+(mod3EC.lin=arima(lnserie.lin,order=c(0,1,2),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
 abs(mod3EC.lin$coef/sqrt(diag(mod3EC.lin$var.coef)))
 ```
 
 ```{r}
-(mod4EC.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
+(mod4EC.lin=arima(lnserie.lin,order=c(0,1,4),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
 abs(mod4EC.lin$coef/sqrt(diag(mod4EC.lin$var.coef)))
 ```
 
-model 3
+not significant ma3,ma4
+
+```{r}
+(mod5EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(0,1,1),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod5EC.lin$coef/sqrt(diag(mod5EC.lin$var.coef)))
+```
+
+```{r}
+(mod6EC.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(0,1,1),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod6EC.lin$coef/sqrt(diag(mod6EC.lin$var.coef)))
+```
+
+```{r}
+(mod7EC.lin=arima(lnserie.lin,order=c(0,1,2),seasonal=list(order=c(0,1,1),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod7EC.lin$coef/sqrt(diag(mod7EC.lin$var.coef)))
+```
+
+```{r}
+(mod8EC.lin=arima(lnserie.lin,order=c(0,1,4),seasonal=list(order=c(0,1,1),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod8EC.lin$coef/sqrt(diag(mod8EC.lin$var.coef)))
+```
+
+not significant ma3,ma4
+
+```{r}
+(mod9EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(0,1,3),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod9EC.lin$coef/sqrt(diag(mod9EC.lin$var.coef)))
+```
+
+```{r}
+(mod10EC.lin=arima(lnserie.lin,order=c(4,1,0),seasonal=list(order=c(0,1,3),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod10EC.lin$coef/sqrt(diag(mod10EC.lin$var.coef)))
+```
+
+```{r}
+(mod11EC.lin=arima(lnserie.lin,order=c(0,1,2),seasonal=list(order=c(0,1,3),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod11EC.lin$coef/sqrt(diag(mod11EC.lin$var.coef)))
+```
+
+```{r}
+(mod12EC.lin=arima(lnserie.lin,order=c(0,1,4),seasonal=list(order=c(0,1,3),period=12),xreg=data.frame(wTradDays,wEast)))
+abs(mod12EC.lin$coef/sqrt(diag(mod12EC.lin$var.coef)))
+```
+
+
+```{r}
+mod1EC.lin$aic
+mod2EC.lin$aic
+mod3EC.lin$aic
+mod4EC.lin$aic
+
+mod5EC.lin$aic
+mod6EC.lin$aic
+mod7EC.lin$aic
+mod8EC.lin$aic
+
+mod9EC.lin$aic
+mod10EC.lin$aic
+mod11EC.lin$aic
+mod12EC.lin$aic
+```
+
+
+model 9
 
 ```{r}
 pdq <- c(2,1,0)
@@ -608,8 +678,8 @@ PDQ <- c(4,1,0)
 
 
 ```{r}
-EfecTD=coef(mod3EC.lin)["wTradDays"]*wTradDays
-EfecSS=coef(mod3EC.lin)["wEast"]*wEast
+EfecTD=coef(mod9EC.lin)["wTradDays"]*wTradDays
+EfecSS=coef(mod9EC.lin)["wEast"]*wEast
 lnserieEC.lin=lnserie.lin-EfecTD-EfecSS
 plot(lnserie-lnserieEC.lin)
 
@@ -621,10 +691,14 @@ lines(serie)
 d12lnserieEC.lin=diff(lnserieEC.lin,12)
 d1d12lnserieEC.lin=diff(d12lnserieEC.lin,1)
 
-validation(mod3EC.lin,d1d12lnserieEC.lin)
+
 ```
 
-# plots out
+## validation
+
+```{r}
+validation(mod9EC.lin)#,d1d12lnserieEC.lin
+```
 
 ```{r}
 ultim=c(2018,12)
@@ -659,6 +733,14 @@ pr<-ts(exp(pr),start=ultim,freq=12)
 ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+TD+Easter")
 abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
 ```
+
+```{r}
+EfecTD=coef(mod9EC.lin)["wTradDays"]*wTradDays
+EfecSS=coef(mod9EC.lin)["wEast"]*wEast
+lnserieEC.lin=lnserie.lin-EfecTD-EfecSS
+plot(lnserie-lnserieEC.lin)
+```
+
 
 # not checked
 
