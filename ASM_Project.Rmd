@@ -137,9 +137,9 @@ The identified models are:
  - SAR(4)
 
 
-## Fiting 
+## Fitting 
 
-For the model AR(2) SAR(4) with zero regular and seasonal differences (d=0, D=0), we test if intercept to see if it is significant.
+For the model AR(2) SAR(4) with zero regular and seasonal differences (d=0, D=0), we test to see if the intercept is significant.
 
 ```{r}
 (mod1=arima(d1d12lnserie,order=c(2,0,0),seasonal=list(order=c(4,0,0),period=12)))
@@ -172,14 +172,14 @@ intercept_t_ratio <- mod2$coef["intercept"] / sqrt(mod2$var.coef["intercept", "i
 print(intercept_t_ratio)
 ```
 
-Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. So we can use the model with the regular and seasonal differences (d=1, D=1)
+Looking at the t-ratio we see that it is lower than 2 so the intercept is not significant. So we can use the model with the regular and seasonal differences (d=1, D=1).
 
 ```{r}
 (mod2=arima(lnserie,order=c(4,1,0),seasonal=list(order=c(4,1,0),period=12)))
 abs(mod2$coef/sqrt(diag(mod2$var.coef)))
 ```
 
-The AIC is lower for the model without regular and seasonal difference. 
+The AIC is lower for the model with regular and seasonal difference. 
 But the coef AR3 and AR4 are not significant enough.
 
 ```{r}
@@ -187,7 +187,7 @@ mod1$aic
 mod2$aic
 ```
 
-Comparing both models mod2 have lower AIC but the last to coefficients of AR do not pass the significance test. So we finally choose the first model AR(2) SAR(4) as it has almost the same AIC of model 2 but is simpler and all coefficients are significant. 
+Comparing both models mod2 has lower AIC but the last two coefficients of AR do not pass the significance test. So we finally choose the first model AR(2) SAR(4) as it has almost the same AIC of model 2 but it is simpler and all coefficients are significant. 
 
 ## Validation
 
@@ -300,21 +300,21 @@ validation=function(model){ #,dades
     c(lag=(te$parameter),statistic=te$statistic[[1]],p.value=te$p.value)})))
   
 
-  ##Sample ACF vs. Teoric ACF
-  #par(mfrow=c(2,2),mar=c(3,3,3,3))
-  #acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
-  
-  #plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1), 
-  #     type="h",xlab="Lag",  ylab="", main="ACF Teoric")
-  #abline(h=0)
-  
-  ##Sample PACF vs. Teoric PACF
-  #pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
-  
-  #plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-  #     type="h", xlab="Lag", ylab="", main="PACF Teoric")
-  #abline(h=0)
-  #par(mfrow=c(1,1))
+  # #Sample ACF vs. Teoric ACF
+  # par(mfrow=c(2,2),mar=c(3,3,3,3))
+  # acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
+  # 
+  # plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1),
+  #      type="h",xlab="Lag",  ylab="", main="ACF Teoric")
+  # abline(h=0)
+  # 
+  # #Sample PACF vs. Teoric PACF
+  # pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
+  # 
+  # plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
+  #      type="h", xlab="Lag", ylab="", main="PACF Teoric")
+  # abline(h=0)
+  # par(mfrow=c(1,1))
 }
 ################# Fi Validation #################################
 ```
@@ -322,6 +322,22 @@ validation=function(model){ #,dades
 ```{r}
 validation(mod1) #,d1d12lnserie
 ```
+
+The validation of model1 has these results:
+- Residual analysis: The residuals appear to be random and centered around zero and there are some visible outliers. We could say that their variance is constant looking at the absolute residuals plot. There seems to be no clear pattern in the variability of the residuals over time, which suggests that the variance of the errors is constant (homoscedastic). The Q-Q plot shows some deviation in the tails, indicating that the residuals may not be perfectly normally distributed. The histogram shows that the residuals are roughly bell-shaped and centered around zero, even though there are more observations in the mean as well as the right side of the mean (heavy tail), indicating some slight skewness.
+
+Looking at the statistical tests, we get a different interpretation as the normality tests (Shapiro-Wilk, Anderson-Darling, Jarque Bera) indicate that the residuals are not normally distributed (p-values are significant). Also, regarding homogeneity of variance, the Breusch Pagan test gives us ap-value of 0.531 suggests that there is no evidence of heteroscedasticity in the residuals.
+
+- Autocorrelation: The Ljung-Box test checks for autocorrelation in residuals at different lags and some lags (like 12 and 48) show significant p-values, suggesting possible autocorrelation issues at these lags. However, the Durbin-Watson test suggests no autocorrelation in residuals (DW close to 2). 
+
+The third plot that gives us another representation of the p-values for the Ljung-Box statistic over different lags indicates that some dots seem to be above the significance threshold (dashed lines), while most are below it. As the dots represent the p-value at each lag, we see that there is autocorrelation at the lags represented by the dots who are below the threshold. The Ljung-Box test fails after lag 9, so the samples are not independent.
+
+- Invertibility: There is no number in the results so we cannot make an interpretation. As our model is only comprised of an AR component and has no MA component, the *theta* variable is empty. Hence, the concept of invertibility does not apply to our model.
+
+-Causality: The model is stationary/causal as all the roots of the seasonal AR-characteristic polynomial lie outside of the unit circle witl all modul > 1. So, the model can be represented as a convergent MA(∞) expression with psi weights.
+
+
+Summary: Outliers detection and its treatment should be the next step, and possibly, better validation results can be obtained. Also calendar effects analysis should be performed. 
 
 ```{r}
 ultim=c(2018,12)
