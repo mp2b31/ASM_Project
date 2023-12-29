@@ -565,7 +565,7 @@ source("atipics2.r")
 ## Outlier identification
 
 ```{r}
-# crit 2.9 cut be a good threahhold
+
 modEC.atip=outdetec(mod2EC,dif=c(1,12),crit=3,LS=T)
 modEC.atip$sigma
 ```
@@ -758,9 +758,6 @@ lnserieEC.lin=lnserie.lin-EfecTD-EfecSS
 plot(lnserie-lnserieEC.lin)
 ```
 
-
-# not checked
-
 ```{r}
 (previs.lin=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
 ```
@@ -784,13 +781,14 @@ cat("\nMean Length CI: ",mCI3)
 # Long term predictions with complete model
 
 ```{r}
-##### Previsions a llarg termini amb el model complet ######
 data3=c(ultim[1]+2, 1, 12)
 
 wTradDays3=Wtrad(data3)
 wEast3=Weaster(data3)
 pred=predict(modEC.lin,n.ahead=12,newxreg=data.frame(wTradDays3,wEast3))
-predic=pred$pr
+wLS=sum(modEC.atip$atip[modEC.atip$atip$type_detected=="LS",3])
+predic=pred$pr + wLS
+
 pr<-ts(c(lnserie[length(lnserie)],predic),start=ultim+c(1,0),freq=12)
 se<-ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
 
@@ -799,35 +797,11 @@ tl3<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
 tu3<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr3<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 
-ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),type="o",main="Model ARIMA(0,1,1)(0,1,1)12")
+ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),ylim=c(500,2000),type="o",main="Model ARIMA(0,1,1)(0,1,1)12")
 abline(v=(ultim[1]-2):(ultim[1]+3),lty=3,col=4)
 ```
 
 ```{r}
-par(mfrow=c(2,2),mar=c(3,3,1,1))
-ts.plot(serie,previs1,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(2,1,0)12")
-abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
-ts.plot(serie,previs2,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+EC")
-abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
-ts.plot(serie,previs3,lty=c(1,2,1,2),col=c(1,4,2,4),xlim=c(2017,2021),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+EC+Atip")
-abline(v=2016:2021,lty=3,col=4,ylim=c(15,280))
-par(mfrow=c(1,1))
-```
-
-```{r}
-resul=data.frame(
-  par=c(length(coef(mod1)),length(coef(mod1EC)),length(coef(mod1EC.lin))+nrow(modEC.atip$atip)),
-  Sigma2Z=c(mod1$sigma2,mod1EC$sigma2,mod1EC.lin$sigma2),
-  AIC=c(AIC(mod1),AIC(mod1EC),AIC(mod1EC.lin)+2*nrow(modEC.atip$atip)),
-  BIC=c(BIC(mod1),BIC(mod1EC),BIC(mod1EC.lin)+log(length(serie)-13)*nrow(modEC.atip$atip)),
-  RMSE=c(mod.RMSE1,mod.RMSE2,mod.RMSE3),
-  MAE=c(mod.MAE1,mod.MAE2,mod.MAE3),
-  RMSPE=c(mod.RMSPE1,mod.RMSPE2,mod.RMSPE3),
-  MAPE=c(mod.MAPE1,mod.MAPE2,mod.MAPE3),
-  meanLength=c(mCI1,mCI2,mCI3))
-row.names(resul)=c("ARIMA(0,1,1)(4,1,0)12","ARIMA(0,1,1)(0,1,1)12+CalEf","ARIMA(0,1,1)(0,1,1)12+CalEf+Outliers")
-
-
-resul
+(previs=window(cbind(tl3,pr3,tu3),start=ultim+c(1,0)))
 ```
 
