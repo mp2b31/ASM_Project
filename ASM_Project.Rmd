@@ -721,7 +721,8 @@ wEast2=window(wEast,end=ultim)
 
 ```{r}
 pred=predict(modEC.lin2,n.ahead=12,newxreg=window(cbind(wTradDays,wEast),start=c(ultim[1]+1,1)))
-predic=pred$pr
+wLS=sum(modEC.atip$atip[modEC.atip$atip$type_detected=="LS" & modEC.atip$atip$Obs<=length(serie)-12,3])
+predic=pred$pr+wLS
 pr<-ts(c(tail(lnserie2,1),predic),start=ultim,freq=12)
 se<-ts(c(0,pred$se),start=ultim,freq=12)
 
