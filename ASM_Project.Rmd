@@ -720,7 +720,7 @@ The model 9 has these parameters below:
 
 ```{r}
 pdq <- c(2,1,0)
-PDQ <- c(4,1,0)
+PDQ <- c(0,1,3)
 ```
 
 
@@ -743,6 +743,8 @@ d1d12lnserieEC.lin=diff(d12lnserieEC.lin,1)
 ## Validation
 
 We proceed to validate model 9.
+
+
 
 ```{r}
 validation(mod9EC.lin)#,d1d12lnserieEC.lin
@@ -779,7 +781,7 @@ tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
 tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
 pr<-ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(2,1,0)(4,1,0)12+TD+Easter+Outliers")
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(2,1,0)(0,1,3)12+TD+Easter+Outliers")
 abline(v=(ultim[1]-3):(ultim[1]+3),lty=3,col=4)
 
 ```
@@ -831,7 +833,7 @@ tl3<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
 tu3<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr3<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 
-ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),ylim=c(500,2000),type="o",main="Model ARIMA(2,1,0)(4,1,0)12+TD+Easter+Outliers")
+ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),ylim=c(500,2000),type="o",main="Model ARIMA(2,1,0)(0,1,3)12+TD+Easter+Outliers")
 abline(v=(ultim[1]-2):(ultim[1]+3),lty=3,col=4)
 ```
 Long term predictions table
