@@ -4,7 +4,7 @@ author: "Eloi Campeny Roig & Maria Paraskeva"
 date: "2023-12-20"
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 #Read Data
@@ -88,7 +88,7 @@ Calculate the seasonal difference on the log data with a lag of 12. Then plot th
 
 ```{r}
 d12lnserie=diff(lnserie,12)
-plot(d12lnserie)
+plot(d12lnserie, main = "Seasonality difference in Log Series")
 abline(h=0)
 abline(h=mean(d12lnserie),col=2)
 ```
@@ -97,7 +97,7 @@ Add a differencing to the previous series with a lag of 1 and plot the results.
 
 ```{r}
 d1d12lnserie=diff(d12lnserie,1)
-plot(d1d12lnserie)
+plot(d1d12lnserie, main = "Regular difference in Seasonal Log Series")
 abline(h=0)
 abline(h=mean(d1d12lnserie),col=2,lwd=2)
 ```
@@ -106,7 +106,7 @@ Add another differencing with a lag of 1 and plot the results.
 
 ```{r}
 d1d1d12lnserie=diff(d1d12lnserie,1)
-plot(d1d1d12lnserie)
+plot(d1d1d12lnserie, main = "Second Regular difference in Seasonal Log Series")
 abline(h=0)
 abline(h=mean(d1d12lnserie),col=2,lwd=2)
 ```
@@ -116,7 +116,7 @@ Show the variance of the transformed time series. The lower variance is that of 
 ```{r}
 var(lnserie)
 var(d1d12lnserie)
-var(d1d1d12lnserie)
+var(d1d1d12lnserie) #make a table
 ```
 
 # Simpler models
@@ -137,7 +137,7 @@ The identified models are:
  - SAR(4)
 
 
-## Fitting 
+## Estimation 
 
 For the model AR(2) SAR(4) with zero regular and seasonal differences (d=0, D=0), we test to see if the intercept is significant.
 
@@ -184,7 +184,7 @@ But the coef AR3 and AR4 are not significant enough.
 
 ```{r}
 mod1$aic 
-mod2$aic
+mod2$aic  
 ```
 
 Comparing both models mod2 has lower AIC but the last two coefficients of AR do not pass the significance test. So we finally choose the first model AR(2) SAR(4) as it has almost the same AIC of model 2 but it is simpler and all coefficients are significant. 
@@ -339,6 +339,8 @@ The third plot that gives us another representation of the p-values for the Ljun
 
 Summary: Outliers detection and its treatment should be the next step, and possibly, better validation results can be obtained. Also calendar effects analysis should be performed. 
 
+Below we continue with a comparison of one model until December 2018 and the complete model, in order to see if the model generalises well with the data.
+
 ```{r}
 ultim=c(2018,12)
 pdq=c(2,1,0) 
@@ -378,6 +380,7 @@ abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
 
 (previs=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
 ```
+Errors of the first model
 
 ```{r}
 obs=window(serie,start=ultim)
@@ -411,15 +414,18 @@ data=c(start(lnserie)[1],start(lnserie)[2], length(lnserie))
 (wEast=Weaster(data))
 ```
 
+Model with Trading Days
+
 ```{r}
 (modTD=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=wTradDays))
 abs(modTD$coef/sqrt(diag(modTD$var.coef)))
 ```
-
+Model with Easter week
 ```{r}
 (modEa=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=wEast))
 abs(modEa$coef/sqrt(diag(modEa$var.coef)))
 ```
+Model with Trading days and Easter weeks
 
 ```{r}
 (modEC=arima(lnserie,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays,wEast)))
@@ -431,6 +437,8 @@ mod1$aic
 modTD$aic
 modEa$aic
 modEC$aic
+
+#make a table with the results
 ```
 
 best model modEC
@@ -443,7 +451,9 @@ lnserieEC=lnserie-EfecTD-EfecSS
 d1d12lnserieEC=diff(diff(lnserieEC,12))
 ```
 
-## Idetification
+## Identification
+
+Identification of the models without calendar effects. 
 
 ```{r}
 par(mfrow=c(1,2))
@@ -454,7 +464,7 @@ par(mfrow=c(1,1))
 
 MA(1), AR(2), SMA(1)
 
-## Fiting
+## Estimation
 
 ```{r}
 (mod1EC=arima(lnserie,order=c(1,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
@@ -477,19 +487,34 @@ PDQ <- c(1,1,0)
 ```{r}
 EfecTD=coef(mod2EC)["wTradDays"]*wTradDays
 EfecSS=coef(mod2EC)["wEast"]*wEast
-plot(EfecTD+EfecSS)
+plot(EfecTD+EfecSS, main = "Calendar Effects")
 ```
 
 ```{r}
-reduced <- window(serie,start=ultim-c(4,0) ,end=ultim-c(1,0))
+reduced <- window(serie,start=ultim-c(29,0) ,end=ultim+c(1,0))
 
 lnserieEC=lnserie-EfecTD-EfecSS
 
 serieEC=exp(lnserieEC)
-plot(reduced,type="o")
+plot(reduced,type="o", main = "Comparison between Original Series \nand Series without Calendar Effects")
 lines(serieEC,col=2,type="o")
-abline(v=2014:2017,lty=3,col=4)
+abline(v=1990:2020,lty=3,col=4)
+```
 
+```{r}
+reduced <- window(serie,start=ultim-c(4,0) ,end=ultim+c(1,0))
+
+lnserieEC=lnserie-EfecTD-EfecSS
+serieEC=exp(lnserieEC)
+reducedEC <- window(serieEC,start=ultim-c(4,0) ,end=ultim+c(1,0))
+
+plot(reduced,type="o", main = "Comparison between Original Series \nand Series without Calendar Effects \nin the last five years")
+lines(reducedEC,col=2,type="o")
+abline(v=1990:2020,lty=3,col=4)
+
+```
+
+```{r}
 window(cbind(wTradDays,wEast,serie,serieEC),start=2014)
 ```
 
@@ -513,6 +538,7 @@ wEast2=window(wEast,end=ultim)
 
 (modEC2=arima(lnserie2,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays2,wEast2)))
 ```
+Predictions
 
 ```{r}
 pred=predict(modEC2,n.ahead=12,newxreg=window(cbind(wTradDays,wEast),start=c(ultim[1]+1,1)))
@@ -538,7 +564,7 @@ abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
 
 (previs=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
 ```
-
+Error Comparison
 ```{r}
 obs=window(serie,start=ultim)
 mod.RMSE1=sqrt(sum((obs-pr)^2)/12)
@@ -556,6 +582,8 @@ cat("\nMean Length CI: ",mCI1)
 ```
 
 # Outlier treatment
+
+We now proceed to take a look at the outliers, first by identifying them and then by treating them.
 
 ```{r}
 ########## Atípics (Outliers) ###############################################
@@ -575,6 +603,7 @@ atipics=modEC.atip$atip[order(modEC.atip$atip[,1]),]
 month=c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
 
 data.frame(atipics,Fecha=paste(month[(atipics[,1]-1)%%12+1],start(lnserie)[1]+((atipics[,1]-1)%/%12)),perc.Obs=exp(atipics[,3])*100)
+# make a table with these results
 ```
 
 ```{r}
@@ -597,10 +626,10 @@ acf(d1d12lnserieEC.lin,ylim=c(-1,1),lag.max=120,col=c(2,rep(1,11)),lwd=2)
 pacf(d1d12lnserieEC.lin,ylim=c(-1,1),lag.max=120,col=c(rep(1,11),2),lwd=2)
 par(mfrow=c(1,1))
 ```
-
+The models we hava identified from the ACF and PACF plots are the following:
 AR(2), AR(4), MA(2), MA(4), SAR(1), SMA(1), SMA(3)
 
-## Fiting
+## Estimation
 
 ```{r}
 (mod1EC.lin=arima(lnserie.lin,order=c(2,1,0),seasonal=list(order=c(1,1,0),period=12),xreg=data.frame(wTradDays,wEast)))
@@ -665,7 +694,7 @@ abs(mod11EC.lin$coef/sqrt(diag(mod11EC.lin$var.coef)))
 (mod12EC.lin=arima(lnserie.lin,order=c(0,1,4),seasonal=list(order=c(0,1,3),period=12),xreg=data.frame(wTradDays,wEast)))
 abs(mod12EC.lin$coef/sqrt(diag(mod12EC.lin$var.coef)))
 ```
-
+After creating twelve different models, we compare their AIC index in order to find the best one. As shown below, the model with the lowest AIC is model 9.
 
 ```{r}
 mod1EC.lin$aic
@@ -682,10 +711,12 @@ mod9EC.lin$aic
 mod10EC.lin$aic
 mod11EC.lin$aic
 mod12EC.lin$aic
+
+# create table with results
 ```
 
 
-model 9
+The model 9 has these parameters below:
 
 ```{r}
 pdq <- c(2,1,0)
@@ -697,9 +728,9 @@ PDQ <- c(4,1,0)
 EfecTD=coef(mod9EC.lin)["wTradDays"]*wTradDays
 EfecSS=coef(mod9EC.lin)["wEast"]*wEast
 lnserieEC.lin=lnserie.lin-EfecTD-EfecSS
-plot(lnserie-lnserieEC.lin)
+plot(lnserie-lnserieEC.lin, main = "Outlier Effects")
 
-plot(exp(lnserieEC.lin),col=2)
+plot(exp(lnserieEC.lin),col=2, main = "Series Comparison Original vs. without Calendar Effects and Outliers")
 lines(serie)
 ```
 
@@ -707,10 +738,11 @@ lines(serie)
 d12lnserieEC.lin=diff(lnserieEC.lin,12)
 d1d12lnserieEC.lin=diff(d12lnserieEC.lin,1)
 
-
 ```
 
-## validation
+## Validation
+
+We proceed to validate model 9.
 
 ```{r}
 validation(mod9EC.lin)#,d1d12lnserieEC.lin
@@ -729,11 +761,11 @@ wEast2=window(wEast,end=ultim)
 
 ```{r}
 (modEC.lin=arima(lnserie.lin1,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays,wEast)))
-```
 
-```{r}
 (modEC.lin2=arima(lnserie.lin2,order=pdq,seasonal=list(order=PDQ,period=12),xreg=data.frame(wTradDays2,wEast2)))
+
 ```
+Prediction for the year 2020.
 
 ```{r}
 pred=predict(modEC.lin2,n.ahead=12,newxreg=window(cbind(wTradDays,wEast),start=c(ultim[1]+1,1)))
@@ -747,8 +779,9 @@ tl<-ts(exp(pr-1.96*se),start=ultim,freq=12)
 tu<-ts(exp(pr+1.96*se),start=ultim,freq=12)
 pr<-ts(exp(pr),start=ultim,freq=12)
 
-ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(0,1,1)(0,1,1)12+TD+Easter")
-abline(v=(ultim[1]-3):(ultim[1]+2),lty=3,col=4)
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-3,2),type="o",main="Model ARIMA(2,1,0)(4,1,0)12+TD+Easter+Outliers")
+abline(v=(ultim[1]-3):(ultim[1]+3),lty=3,col=4)
+
 ```
 
 ```{r}
@@ -761,6 +794,7 @@ plot(lnserie-lnserieEC.lin)
 ```{r}
 (previs.lin=window(cbind(tl,pr,tu,serie,error=round(serie-pr,3)),start=ultim))
 ```
+Error Comparison.
 
 ```{r}
 obs=window(serie,start=ultim)
@@ -797,9 +831,10 @@ tl3<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
 tu3<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
 pr3<-ts(exp(pr),start=ultim+c(1,0),freq=12)
 
-ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),ylim=c(500,2000),type="o",main="Model ARIMA(0,1,1)(0,1,1)12")
+ts.plot(serie,tl3,tu3,pr3,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,3),ylim=c(500,2000),type="o",main="Model ARIMA(2,1,0)(4,1,0)12+TD+Easter+Outliers")
 abline(v=(ultim[1]-2):(ultim[1]+3),lty=3,col=4)
 ```
+Long term predictions table
 
 ```{r}
 (previs=window(cbind(tl3,pr3,tu3),start=ultim+c(1,0)))
