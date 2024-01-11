@@ -195,7 +195,7 @@ We proceed to the validation of our chosen model.
 
 ```{r}
 #################Validation#################################
-validation=function(model){ #,dades
+validation=function(model,dades){ 
   s=frequency(get(model$series))
   resid=model$residuals
   par(mfrow=c(2,2),mar=c(3,3,3,3))
@@ -300,27 +300,27 @@ validation=function(model){ #,dades
     c(lag=(te$parameter),statistic=te$statistic[[1]],p.value=te$p.value)})))
   
 
-  # #Sample ACF vs. Teoric ACF
-  # par(mfrow=c(2,2),mar=c(3,3,3,3))
-  # acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
-  # 
-  # plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1),
-  #      type="h",xlab="Lag",  ylab="", main="ACF Teoric")
-  # abline(h=0)
-  # 
-  # #Sample PACF vs. Teoric PACF
-  # pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
-  # 
-  # plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
-  #      type="h", xlab="Lag", ylab="", main="PACF Teoric")
-  # abline(h=0)
-  # par(mfrow=c(1,1))
+  #Sample ACF vs. Teoric ACF
+  par(mfrow=c(2,2),mar=c(3,3,3,3))
+  acf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample ACF")
+  
+  plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36),ylim=c(-1,1),
+       type="h",xlab="Lag",  ylab="", main="ACF Teoric")
+  abline(h=0)
+  
+  #Sample PACF vs. Teoric PACF
+  pacf(dades, ylim=c(-1,1) ,lag.max=36,main="Sample PACF")
+  
+  plot(ARMAacf(model$model$phi,model$model$theta,lag.max=36, pacf=T),ylim=c(-1,1),
+       type="h", xlab="Lag", ylab="", main="PACF Teoric")
+  abline(h=0)
+  par(mfrow=c(1,1))
 }
 ################# Fi Validation #################################
 ```
 
 ```{r}
-validation(mod1) #,d1d12lnserie
+validation(mod1,d1d12lnserie)
 ```
 
 The validation of model1 has these results:
@@ -544,7 +544,7 @@ window(cbind(wTradDays,wEast,serie,serieEC),start=2014)
 ## Validation
 
 ```{r}
-validation(mod2EC)#,d1d12lnserieEC
+validation(mod2EC,d1d12lnserieEC)
 ```
 
 ```{r}
@@ -770,7 +770,7 @@ We proceed to validate model 9.
 
 
 ```{r}
-validation(mod9EC.lin)#,d1d12lnserieEC.lin
+validation(mod9EC.lin,d1d12lnserieEC.lin)
 ```
 
 ```{r}
