@@ -398,6 +398,29 @@ mCI1=mean(tu-tl)
 cat("\nMean Length CI: ",mCI1)
 ```
 
+```{r}
+pred=predict(mod1,n.ahead=12)
+pr<-ts(c(tail(lnserie1,1),pred$pred),start=ultim+c(1,0),freq=12)
+
+se<-ts(c(0,pred$se),start=ultim+c(1,0),freq=12)
+
+#Intervals
+tl<-ts(exp(pr-1.96*se),start=ultim+c(1,0),freq=12)
+tu<-ts(exp(pr+1.96*se),start=ultim+c(1,0),freq=12)
+pr<-ts(exp(pr),start=ultim+c(1,0),freq=12)
+
+reduced <- window(serie,start=ultim-c(3,0) ,end=ultim+c(1,0))
+
+top <- max(reduced,tu)
+bot <- min(reduced,tl)
+mid <- top - bot
+
+ts.plot(reduced,tl,tu,pr,lty=c(1,2,2,1),col=c(1,4,4,2),xlim=ultim[1]+c(-2,+3),ylim=c(bot-0.1*mid,top+0.1*mid),type="o",main="Model ARIMA(2,1,0)(4,1,0)12")
+abline(v=(ultim[1]-2):(ultim[1]+3),lty=3,col=4)
+
+```
+
+
 # Calendar Effect
 
 ```{r}
